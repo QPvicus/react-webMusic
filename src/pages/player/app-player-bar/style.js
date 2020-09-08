@@ -178,11 +178,11 @@ export const Operate = styled.div`
 				background-position: ${props => {
 					switch (props.sequence) {
 						case 1:
-							return "-33px -344px";
-						case 2:
 							return "-93px -248px";
-						default:
+						case 2:
 							return "-93px -344px";
+						default:
+							return "-33px -344px";
 					}
 				}};
 			}

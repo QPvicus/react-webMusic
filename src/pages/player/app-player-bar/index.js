@@ -1,8 +1,14 @@
 import React, { memo, useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { PlayerBarWrapper, Control, PlayInfo, Operate } from "./style";
-import { Slider } from "antd";
-import { getSongDetailAction } from "../store/actionCreator";
+import { NavLink, HashRouter } from "react-router-dom";
+import { Slider, message } from "antd";
+import {
+	getSongDetailAction,
+	changeSequenceAction,
+	changeCurrentSong,
+	changeCurrentLyricIndexAction
+} from "../store/actionCreator";
 import {
 	getSizeImage1,
 	formatMinuteSecond,
@@ -16,9 +22,14 @@ export default memo(function TSAppPlayBar() {
 	const [isPlaying, setIsPlaying] = useState(false);
 
 	const dispatch = useDispatch();
-	const { currentSong } = useSelector(state => ({
-		currentSong: state.getIn(["player", "currentSong"])
-	}));
+	const { currentSong, sequence, lyricList, currentLyricIndex } = useSelector(
+		state => ({
+			currentSong: state.getIn(["player", "currentSong"]),
+			sequence: state.getIn(["player", "sequence"]),
+			lyricList: state.getIn(["player", "lyricList"]),
+			currentLyricIndex: state.getIn(["player", "currentLyricIndex"])
+		})
+	);
 
 	const audioRef = useRef();
 	useEffect(() => {
@@ -26,6 +37,14 @@ export default memo(function TSAppPlayBar() {
 	}, [dispatch]);
 	useEffect(() => {
 		audioRef.current.src = getPlaySong(currentSong.id);
+		audioRef.current
+			.play()
+			.then(res => {
+				setIsPlaying(true);
+			})
+			.catch(err => {
+				setIsPlaying(false);
+			});
 	}, [currentSong]);
 	// other handle
 	const picUrl = (currentSong.al && currentSong.al.picUrl) || "";
@@ -40,11 +59,55 @@ export default memo(function TSAppPlayBar() {
 		setIsPlaying(!isPlaying);
 	}, [isPlaying]);
 	const timeUpdate = e => {
+		const currentTime = e.target.currentTime;
 		if (!isChanging) {
-			setCurrentTime(e.target.currentTime * 1000);
-			setProgress((currentTime / duration) * 100);
+			setCurrentTime(currentTime * 1000);
+			setProgress(((currentTime * 1000) / duration) * 100);
+		}
+
+		// 获取当前歌词
+		let i = 0;
+		for (; i < lyricList.length; i++) {
+			let lyricItem = lyricList[i];
+			if (currentTime * 1000 < lyricItem.time) {
+				break;
+			}
+		}
+		// console.log(lyricList[i - 1]);
+		if (currentLyricIndex !== i - 1) {
+			dispatch(changeCurrentLyricIndexAction(i - 1));
+			const content = lyricList[i - 1] && lyricList[i - 1].content;
+			message.open({
+				key: "lyric",
+				content,
+				duration: 0,
+				className: "lyric-class"
+			});
 		}
 	};
+
+	const changeSequence = () => {
+		let currentSequence = sequence + 1;
+		if (currentSequence > 2) {
+			currentSequence = 0;
+		}
+		dispatch(changeSequenceAction(currentSequence));
+	};
+
+	const changeMusic = tag => {
+		dispatch(changeCurrentSong(tag));
+	};
+
+	const handleMusicEnded = () => {
+		if (sequence === 2) {
+			// 单曲循环
+			audioRef.current.currentTime = 0;
+			audioRef.current.play();
+		} else {
+			dispatch(changeCurrentSong(1));
+		}
+	};
+
 	const sliderChange = useCallback(
 		value => {
 			setIsChanging(true);
@@ -68,22 +131,31 @@ export default memo(function TSAppPlayBar() {
 		},
 		[duration, isPlaying, playMusic]
 	);
+
 	return (
 		<PlayerBarWrapper className="sprite_player">
 			<div className="content wrap-v2">
 				<Control isPlaying={isPlaying}>
-					<button className="prev sprite_player"></button>
+					<button
+						className="prev sprite_player"
+						onClick={e => changeMusic(-1)}
+					></button>
 					<button
 						className="play sprite_player"
 						onClick={e => playMusic()}
 					></button>
-					<button className="next sprite_player"></button>
+					<button
+						className="next sprite_player"
+						onClick={e => changeMusic(1)}
+					></button>
 				</Control>
 				<PlayInfo>
 					<div className="image">
-						<a href="/#">
-							<img src={getSizeImage1(picUrl, 34)} alt="" />
-						</a>
+						<HashRouter>
+							<NavLink to="/discover/player">
+								<img src={getSizeImage1(picUrl, 34)} alt="" />
+							</NavLink>
+						</HashRouter>
 					</div>
 					<div className="info">
 						<div className="song">
@@ -107,18 +179,25 @@ export default memo(function TSAppPlayBar() {
 						</div>
 					</div>
 				</PlayInfo>
-				<Operate>
+				<Operate sequence={sequence}>
 					<div className="left">
 						<button className="btn sprite_player favor"></button>
 						<button className="btn sprite_player share"></button>
 					</div>
 					<div className="right sprite_player">
 						<button className="btn sprite_player volume"></button>
-						<button className="btn sprite_player loop"></button>
+						<button
+							className="btn sprite_player loop"
+							onClick={e => changeSequence()}
+						></button>
 						<button className="btn sprite_player playlist"></button>
 					</div>
 				</Operate>
-				<audio ref={audioRef} onTimeUpdate={timeUpdate} />
+				<audio
+					ref={audioRef}
+					onTimeUpdate={e => timeUpdate(e)}
+					onEnded={e => handleMusicEnded()}
+				/>
 			</div>
 		</PlayerBarWrapper>
 	);

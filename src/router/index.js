@@ -1,4 +1,5 @@
 import React from "react";
+
 import TSDiscover from "@/pages/discover";
 import TSFriend from "@/pages/friend";
 import TSMine from "@/pages/mine";
@@ -8,6 +9,7 @@ import TSRanking from "@/pages/discover/c-pages/ranking";
 import TSDjRadio from "@/pages/discover/c-pages/djradio";
 import TSArtist from "@/pages/discover/c-pages/artist";
 import TSSongs from "@/pages/discover/c-pages/songs";
+import TSPlayer from "@/pages/player";
 import { Redirect } from "react-router-dom";
 
 const routes = [
@@ -46,8 +48,12 @@ const routes = [
 				component: TSArtist
 			},
 			{
-				pathL: "/discover/songs",
+				path: "/discover/songs",
 				component: TSSongs
+			},
+			{
+				path: "/discover/player",
+				component: TSPlayer
 			}
 		]
 	},

@@ -144,9 +144,10 @@ button {
 
 .lyric-class .ant-message-notice-content {
 	position: fixed;
+	zoom: 1;
 	left: 50%;
 	transform: translateX(-50%);
 	bottom: 50px;
-	background-color: rgba(0, 0, 0, 0.5);
+	background-color: rgba(0, 0, 0, 0.6);
 	color: #fff;
 }
